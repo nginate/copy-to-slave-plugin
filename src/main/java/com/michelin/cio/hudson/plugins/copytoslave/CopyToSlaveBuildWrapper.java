@@ -27,23 +27,19 @@ import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.Build;
-import hudson.model.BuildListener;
-import hudson.model.Computer;
-import hudson.model.Hudson;
-import hudson.model.Hudson.MasterComputer;
+import hudson.model.*;
 import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapperDescriptor;
-import java.io.IOException;
-import javax.servlet.ServletException;
+import jenkins.model.Jenkins.MasterComputer;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.jvnet.localizer.Localizable;
 import org.jvnet.localizer.ResourceBundleHolder;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
+
+import javax.servlet.ServletException;
+import java.io.IOException;
 
 /**
  * @author Romain Seguy (http://openromain.blogspot.com)
@@ -61,22 +57,21 @@ public class CopyToSlaveBuildWrapper extends BuildWrapper {
     private final boolean includeAntExcludes; // HUDSON-8274 (partially)
     @Deprecated
     private final boolean hudsonHomeRelative; // HUDSON-7021 (as of 2011/03/01, replaced by relativeTo
-                                              // and kept for backward compatibility)
+    // and kept for backward compatibility)
     private final String relativeTo;
 
     @DataBoundConstructor
-    public CopyToSlaveBuildWrapper(String includes, String excludes, boolean flatten, boolean includeAntExcludes, String relativeTo, boolean hudsonHomeRelative) {
+    public CopyToSlaveBuildWrapper(String includes, String excludes, boolean flatten, boolean includeAntExcludes,
+            String relativeTo, boolean hudsonHomeRelative) {
         this.includes = includes;
         this.excludes = excludes;
         this.flatten = flatten;
         this.includeAntExcludes = includeAntExcludes;
-        if(hudsonHomeRelative) { // backward compatibility
+        if (hudsonHomeRelative) { // backward compatibility
             this.relativeTo = RELATIVE_TO_HOME;
-        }
-        else if(StringUtils.isBlank(relativeTo)) {
+        } else if (StringUtils.isBlank(relativeTo)) {
             this.relativeTo = RELATIVE_TO_USERCONTENT;
-        }
-        else {
+        } else {
             this.relativeTo = relativeTo;
         }
         this.hudsonHomeRelative = false; // force hudsonHomeRelative to false to not use it anymore
@@ -88,35 +83,34 @@ public class CopyToSlaveBuildWrapper extends BuildWrapper {
     }
 
     @Override
-    public Environment setUp(AbstractBuild build, final Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
+    public Environment setUp(AbstractBuild build, final Launcher launcher, BuildListener listener) throws
+            IOException, InterruptedException {
         EnvVars env = build.getEnvironment(listener);
         env.overrideAll(build.getBuildVariables());
 
-        if(StringUtils.isBlank(getIncludes())) {
+        if (StringUtils.isBlank(getIncludes())) {
             listener.fatalError(
                     "[copy-to-slave] No includes have been defined: It is mandatory to define them.");
             return null;
         }
 
-        if(Computer.currentComputer() instanceof MasterComputer && RELATIVE_TO_WORKSPACE.equals(relativeTo)) {
+        if (Computer.currentComputer() instanceof MasterComputer && RELATIVE_TO_WORKSPACE.equals(relativeTo)) {
             listener.getLogger().println(
-                    "[copy-to-slave] Trying to copy files from the workspace on the master to the same workspace on the same master: No copy will take place.");
-        }
-        else {
+                    "[copy-to-slave] Trying to copy files from the workspace on the master to the same workspace on " +
+                            "the same master: No copy will take place.");
+        } else {
             FilePath rootFilePathOnMaster;
 
-            if(RELATIVE_TO_WORKSPACE.equals(relativeTo)) {
+            if (RELATIVE_TO_WORKSPACE.equals(relativeTo)) {
                 rootFilePathOnMaster = CopyToSlaveUtils.getProjectWorkspaceOnMaster(build, listener.getLogger());
-            }
-            else if(getDescriptor().isSomewhereElseEnabled() && RELATIVE_TO_SOMEWHERE_ELSE.equals(relativeTo)) {
+            } else if (getDescriptor().isSomewhereElseEnabled() && RELATIVE_TO_SOMEWHERE_ELSE.equals(relativeTo)) {
                 rootFilePathOnMaster = new FilePath(
                         Hudson.getInstance().getChannel(),
                         env.expand(getDescriptor().getSomewhereElsePath()));
-            }
-            else if(getDescriptor().isRelativeToHomeEnabled() && RELATIVE_TO_HOME.equals(relativeTo)) { // JENKINS-12281
+            } else if (getDescriptor().isRelativeToHomeEnabled() && RELATIVE_TO_HOME.equals(relativeTo)) { //
+                // JENKINS-12281
                 rootFilePathOnMaster = Hudson.getInstance().getRootPath();
-            }
-            else {
+            } else {
                 rootFilePathOnMaster = Hudson.getInstance().getRootPath().child("userContent");
             }
 
@@ -125,9 +119,11 @@ public class CopyToSlaveBuildWrapper extends BuildWrapper {
             String includes = env.expand(getIncludes());
             String excludes = env.expand(getExcludes());
 
-            listener.getLogger().printf("[copy-to-slave] Copying '%s', excluding %s, from '%s' on the master to '%s' on '%s'.\n",
-                    includes, StringUtils.isBlank(excludes) ? "nothing" : '\'' + excludes + '\'', rootFilePathOnMaster.toURI(),
-                    projectWorkspaceOnSlave.toURI(), Computer.currentComputer().getNode().getDisplayName());
+            listener.getLogger()
+                    .printf("[copy-to-slave] Copying '%s', excluding %s, from '%s' on the master to '%s' on '%s'.\n",
+                            includes, StringUtils.isBlank(excludes) ? "nothing" : '\'' + excludes + '\'',
+                            rootFilePathOnMaster.toURI(),
+                            projectWorkspaceOnSlave.toURI(), Computer.currentComputer().getNode().getDisplayName());
 
             // HUDSON-7999
             MyFilePath.copyRecursiveTo(
@@ -139,7 +135,8 @@ public class CopyToSlaveBuildWrapper extends BuildWrapper {
 
         return new Environment() {
             @Override
-            public boolean tearDown(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException {
+            public boolean tearDown(AbstractBuild build, BuildListener listener) throws IOException,
+                    InterruptedException {
                 // we need to return true so that the build can go on
                 return true;
             }
@@ -147,7 +144,8 @@ public class CopyToSlaveBuildWrapper extends BuildWrapper {
     }
 
     @Override
-    public Environment setUp(Build build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
+    public Environment setUp(Build build, Launcher launcher, BuildListener listener) throws IOException,
+            InterruptedException {
         return setUp(build, launcher, listener);
     }
 
@@ -160,10 +158,10 @@ public class CopyToSlaveBuildWrapper extends BuildWrapper {
     }
 
     public String getRelativeTo() {
-        if(hudsonHomeRelative) { // backward compatibility
+        if (hudsonHomeRelative) { // backward compatibility
             return RELATIVE_TO_HOME;
         }
-        if(StringUtils.isBlank(relativeTo)) {
+        if (StringUtils.isBlank(relativeTo)) {
             return RELATIVE_TO_USERCONTENT;
         }
         return relativeTo;
@@ -195,9 +193,9 @@ public class CopyToSlaveBuildWrapper extends BuildWrapper {
                 relativeToHomeEnabled = req.getSubmittedForm().getBoolean("relativeToHomeEnabled");
 
                 somewhereElseEnabled = req.getSubmittedForm().getBoolean("somewhereElseEnabled");
-                
+
                 somewhereElsePath = req.getSubmittedForm().getString("somewhereElsePath");
-                if(StringUtils.isBlank(somewhereElsePath)) {
+                if (StringUtils.isBlank(somewhereElsePath)) {
                     somewhereElsePath = null;
                     somewhereElseEnabled = false;
                 }
@@ -205,8 +203,7 @@ public class CopyToSlaveBuildWrapper extends BuildWrapper {
                 save();
 
                 return true;
-            }
-            catch (ServletException e) {
+            } catch (ServletException e) {
                 return false;
             }
         }

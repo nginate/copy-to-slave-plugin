@@ -27,10 +27,11 @@ package com.michelin.cio.hudson.plugins.copytoslave;
 import hudson.Util;
 import hudson.util.DirScanner;
 import hudson.util.FileVisitor;
-import java.io.File;
-import java.io.IOException;
 import org.apache.tools.ant.DirectoryScanner;
 import org.apache.tools.ant.types.FileSet;
+
+import java.io.File;
+import java.io.IOException;
 
 /**
  * Modified copy of  Hudson's {@link DirScanner.Glob} to modify the {@code scan()}
@@ -49,23 +50,23 @@ public class MyGlobDirScanner extends DirScanner {
     }
 
     public void scan(File dir, FileVisitor visitor) throws IOException {
-        if(Util.fixEmpty(includes)==null && excludes==null) {
+        if (Util.fixEmpty(includes) == null && excludes == null) {
             // optimization
             new Full().scan(dir, visitor);
             return;
         }
 
-        FileSet fs = Util.createFileSet(dir,includes,excludes);
+        FileSet fs = Util.createFileSet(dir, includes, excludes);
 
-        if(includeAntExcludes) {
+        if (includeAntExcludes) {
             fs.setDefaultexcludes(false); // HUDSON-7999
         }
 
-        if(dir.exists()) {
+        if (dir.exists()) {
             DirectoryScanner ds = fs.getDirectoryScanner(new org.apache.tools.ant.Project());
-            for(String f : ds.getIncludedFiles()) {
+            for (String f : ds.getIncludedFiles()) {
                 File file = new File(dir, f);
-                visitor.visit(file,f);
+                visitor.visit(file, f);
             }
         }
     }

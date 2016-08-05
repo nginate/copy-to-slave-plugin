@@ -30,6 +30,7 @@ import hudson.model.AbstractProject;
 import hudson.model.FreeStyleProject;
 import hudson.model.TopLevelItem;
 import jenkins.model.Jenkins;
+
 import java.io.File;
 import java.io.PrintStream;
 import java.util.logging.Level;
@@ -44,23 +45,24 @@ public class CopyToSlaveUtils {
         return getProjectWorkspaceOnMaster(build, build.getProject(), logger);
     }
 
-    public static FilePath getProjectWorkspaceOnMaster(AbstractBuild build, AbstractProject project, PrintStream logger) {
+    public static FilePath getProjectWorkspaceOnMaster(AbstractBuild build, AbstractProject project,
+            PrintStream logger) {
         FilePath projectWorkspaceOnMaster;
 
         // free-style projects
-        if(project instanceof FreeStyleProject) {
+        if (project instanceof FreeStyleProject) {
             FreeStyleProject freeStyleProject = (FreeStyleProject) project;
 
             // do we use a custom workspace?
-            if(freeStyleProject.getCustomWorkspace() != null && freeStyleProject.getCustomWorkspace().length() > 0) {
+            if (freeStyleProject.getCustomWorkspace() != null && freeStyleProject.getCustomWorkspace().length() > 0) {
                 projectWorkspaceOnMaster = new FilePath(new File(freeStyleProject.getCustomWorkspace()));
-            }
-            else {
+            } else {
                 projectWorkspaceOnMaster = Jenkins.getInstance().getWorkspaceFor(freeStyleProject);
             }
-        }
-        else {
-            String pathOnMaster = Jenkins.getInstance().getWorkspaceFor((TopLevelItem)project.getRootProject()).getRemote();
+        } else {
+            String pathOnMaster = Jenkins.getInstance()
+                    .getWorkspaceFor((TopLevelItem) project.getRootProject())
+                    .getRemote();
             String parts[] = build.getWorkspace().getRemote().
                     split("workspace" + File.separator + project.getRootProject().getName());
             if (parts.length > 1) {
@@ -74,9 +76,8 @@ public class CopyToSlaveUtils {
         try {
             // create the workspace if it doesn't exist yet
             projectWorkspaceOnMaster.mkdirs();
-        }
-        catch (Exception e) {
-            if(logger != null) {
+        } catch (Exception e) {
+            if (logger != null) {
                 logger.println("An exception occured while creating " + projectWorkspaceOnMaster.getName() + ": " + e);
             }
             LOGGER.log(Level.SEVERE, "An exception occured while creating " + projectWorkspaceOnMaster.getName(), e);

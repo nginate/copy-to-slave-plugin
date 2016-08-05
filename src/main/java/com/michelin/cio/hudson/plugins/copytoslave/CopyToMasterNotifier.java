@@ -31,18 +31,19 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Computer;
-import hudson.model.Hudson.MasterComputer;
 import hudson.slaves.SlaveComputer;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Notifier;
 import hudson.tasks.Publisher;
-import java.io.File;
-import java.io.IOException;
+import jenkins.model.Jenkins.MasterComputer;
 import org.apache.commons.lang.StringUtils;
 import org.jvnet.localizer.Localizable;
 import org.jvnet.localizer.ResourceBundleHolder;
 import org.kohsuke.stapler.DataBoundConstructor;
+
+import java.io.File;
+import java.io.IOException;
 
 /**
  * @author Romain Seguy (http://openromain.blogspot.com)
@@ -56,7 +57,8 @@ public class CopyToMasterNotifier extends Notifier {
     private final boolean runAfterResultFinalised;
 
     @DataBoundConstructor
-    public CopyToMasterNotifier(String includes, String excludes, boolean overrideDestinationFolder, String destinationFolder, boolean runAfterResultFinalised) {
+    public CopyToMasterNotifier(String includes, String excludes, boolean overrideDestinationFolder,
+            String destinationFolder, boolean runAfterResultFinalised) {
         this.includes = includes;
         this.excludes = excludes;
         this.overrideDestinationFolder = overrideDestinationFolder;
@@ -70,33 +72,36 @@ public class CopyToMasterNotifier extends Notifier {
     }
 
     @Override
-    public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
+    public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) throws
+            InterruptedException, IOException {
         EnvVars env = build.getEnvironment(listener);
         env.overrideAll(build.getBuildVariables());
 
-        if(Computer.currentComputer() instanceof SlaveComputer) {
+        if (Computer.currentComputer() instanceof SlaveComputer) {
             FilePath destinationFilePath;
-            if(isOverrideDestinationFolder() && StringUtils.isNotBlank(getDestinationFolder())) {
+            if (isOverrideDestinationFolder() && StringUtils.isNotBlank(getDestinationFolder())) {
                 destinationFilePath = new FilePath(new File(env.expand(getDestinationFolder())));
-            }
-            else {
+            } else {
                 destinationFilePath = CopyToSlaveUtils.getProjectWorkspaceOnMaster(build, listener.getLogger());
             }
 
-            FilePath projectWorkspaceOnSlave = build.getProject().getWorkspace();
+            FilePath projectWorkspaceOnSlave = build.getWorkspace();
 
             String includes = env.expand(getIncludes());
             String excludes = env.expand(getExcludes());
 
-            listener.getLogger().printf("[copy-to-slave] Copying '%s', excluding %s, from '%s' on '%s' to '%s' on the master.\n",
-                    includes, StringUtils.isBlank(excludes) ? "nothing" : '\'' + excludes + '\'', projectWorkspaceOnSlave.toURI(),
-                    Computer.currentComputer().getNode(), destinationFilePath.toURI());
+            listener.getLogger()
+                    .printf("[copy-to-slave] Copying '%s', excluding %s, from '%s' on '%s' to '%s' on the master.\n",
+                            includes, StringUtils.isBlank(excludes) ? "nothing" : '\'' + excludes + '\'',
+                            projectWorkspaceOnSlave
+                                    .toURI(),
+                            Computer.currentComputer().getNode(), destinationFilePath.toURI());
 
             projectWorkspaceOnSlave.copyRecursiveTo(includes, excludes, destinationFilePath);
-        }
-        else if(Computer.currentComputer() instanceof MasterComputer) {
+        } else if (Computer.currentComputer() instanceof MasterComputer) {
             listener.getLogger().println(
-                    "[copy-to-slave] The build is taking place on the master node, no copy back to the master will take place.");
+                    "[copy-to-slave] The build is taking place on the master node, no copy back to the master will " +
+                            "take place.");
         }
 
         return true;
@@ -117,11 +122,11 @@ public class CopyToMasterNotifier extends Notifier {
     public boolean isOverrideDestinationFolder() {
         return overrideDestinationFolder;
     }
-    
+
     public boolean getRunAfterResultFinalised() {
         return runAfterResultFinalised;
     }
-    
+
     public BuildStepMonitor getRequiredMonitorService() {
         return BuildStepMonitor.BUILD;
     }
