@@ -128,7 +128,7 @@ public class CopyToMasterNotifier extends Notifier {
     }
 
     public BuildStepMonitor getRequiredMonitorService() {
-        return BuildStepMonitor.BUILD;
+        return BuildStepMonitor.NONE;
     }
 
     @Extension
